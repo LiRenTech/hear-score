@@ -1,0 +1,16 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+export default defineConfig({
+  plugins: [react()],
+  optimizeDeps: {
+    include: [
+      "@spotify/basic-pitch",
+      "@tensorflow/tfjs",
+      "@tensorflow/tfjs-backend-wasm",
+      "@tonejs/midi",
+      "abcjs",
+    ],
+  },
+  worker: { format: "es" },
+  build: { chunkSizeWarningLimit: 1700 },
+});

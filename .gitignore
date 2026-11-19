@@ -1,0 +1,7 @@
+node_modules/
+dist/
+work/
+.DS_Store
+*.tsbuildinfo
+public/model/
+public/wasm/
