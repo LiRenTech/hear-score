@@ -8,7 +8,6 @@ export interface Track {
   name: string;
   duration: number;
   samples: Float32Array;
-  peaks: number[];
   url: string;
   demo: boolean;
 }

@@ -4,8 +4,8 @@ import { createRequire } from "node:module";
 const { Midi } = createRequire(import.meta.url)(
   "@tonejs/midi",
 ) as typeof import("@tonejs/midi");
-import { abcPitch, buildAbc, filterNotes, joinChunks } from "./notes";
-import { encodeWav, waveform } from "./audio";
+import { filterNotes, joinChunks } from "./notes";
+import { encodeWav } from "./audio";
 import type { Note } from "../types";
 const note = (
   pitch: number,
@@ -48,19 +48,6 @@ test("filtering removes malformed, very short and weak detections", () => {
     [60],
   );
 });
-test("ABC retains leading silence and sustained notes across bars", () => {
-  const abc = buildAbc([note(60, 0.5, 4)], 120, 0, 2);
-  assert.match(abc, /z2 C6-/);
-  assert.match(abc, /C8/);
-});
-test("ABC maps accidentals and octave boundaries correctly", () => {
-  assert.equal(abcPitch(60), "C");
-  assert.equal(abcPitch(61), "^C");
-  assert.equal(abcPitch(48), "C,");
-  assert.equal(abcPitch(72), "c");
-  assert.equal(abcPitch(84), "c'");
-  assert.match(buildAbc([], 110), /z8/);
-});
 test("WAV output has valid PCM headers and bounded peaks", async () => {
   const samples = new Float32Array([0, 0.5, -0.7, 0.1]);
   const buffer = await encodeWav(samples, 22050).arrayBuffer();
@@ -68,7 +55,6 @@ test("WAV output has valid PCM headers and bounded peaks", async () => {
   assert.equal(buffer.byteLength, 52);
   assert.equal(view.getUint32(24, true), 22050);
   assert.equal(view.getUint32(40, true), 8);
-  assert.ok(Math.abs(waveform(samples, 2)[1] - 0.7) < 1e-6);
 });
 test("MIDI round trip preserves overlapping notes and absolute seconds", () => {
   const midi = new Midi();

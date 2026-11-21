@@ -8,7 +8,6 @@ export default defineConfig({
       "@tensorflow/tfjs",
       "@tensorflow/tfjs-backend-wasm",
       "@tonejs/midi",
-      "abcjs",
     ],
   },
   worker: { format: "es" },

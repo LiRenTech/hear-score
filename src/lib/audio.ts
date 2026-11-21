@@ -1,15 +1,6 @@
 import type { Track } from "../types";
 export const SAMPLE_RATE = 22050;
 export const MAX_SECONDS = 300;
-export function waveform(samples: Float32Array, count = 180): number[] {
-  const size = Math.max(1, Math.floor(samples.length / count));
-  return Array.from({ length: count }, (_, i) => {
-    let peak = 0;
-    for (let j = i * size; j < Math.min((i + 1) * size, samples.length); j++)
-      peak = Math.max(peak, Math.abs(samples[j]));
-    return peak;
-  });
-}
 export async function decodeFile(file: File): Promise<Track> {
   if (file.size > 50 * 1024 * 1024)
     throw new Error("文件超过 50 MB。请先裁剪音频，再试一次。");
@@ -42,7 +33,6 @@ export async function decodeFile(file: File): Promise<Track> {
     name: file.name,
     duration: buffer.duration,
     samples,
-    peaks: waveform(samples),
     url: URL.createObjectURL(file),
     demo: false,
   };

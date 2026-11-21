@@ -1,9 +1,9 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AudioLines,
+  Settings,
   Upload,
   ArrowUpRight,
-  Music2,
   Play,
   Pause,
   Download,
@@ -15,22 +15,21 @@ import {
   X,
   RotateCcw,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Square,
   Check,
   LoaderCircle,
   FileAudio,
-  Volume2,
-  Piano,
   Minus,
   Plus,
 } from "lucide-react";
 import type { Note, Phase, Track, WorkerMessage } from "./types";
 import { decodeFile, demoFile, formatTime } from "./lib/audio";
-import { download, exportMidi, filterNotes, pitchName } from "./lib/notes";
+import { download, exportMidi, filterNotes } from "./lib/notes";
+import Select from "./components/Select";
+import SettingsDialog from "./components/SettingsDialog";
+import { readSettings, SETTINGS_KEY } from "./lib/settings";
 import PianoRoll from "./components/PianoRoll";
-const Score = lazy(() => import("./components/Score"));
+import { MAX_ZOOM } from "./lib/timeline";
 export default function App() {
   const [track, setTrack] = useState<Track | null>(null);
   const [rawNotes, setRawNotes] = useState<Note[]>([]);
@@ -43,16 +42,18 @@ export default function App() {
   const [minDuration, setMinDuration] = useState(0.12);
   const [bpm, setBpm] = useState(110);
   const [bpmDraft, setBpmDraft] = useState("110");
-  const [view, setView] = useState<"roll" | "score">("roll");
-  const [page, setPage] = useState(0);
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [rate, setRate] = useState(1);
-  const [listen, setListen] = useState<"original" | "notes">("original");
-  const [epoch, setEpoch] = useState(0);
   const [zoom, setZoom] = useState(1);
+  const [minZoom, setMinZoom] = useState(0.01);
   const [dragging, setDragging] = useState(false);
   const [help, setHelp] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [interactionSettings, setInteractionSettings] = useState(readSettings);
+  useEffect(() => {
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(interactionSettings)); } catch { /* Keep session settings if storage is unavailable. */ }
+  }, [interactionSettings]);
   const [exportOpen, setExportOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -64,13 +65,6 @@ export default function App() {
     () => filterNotes(rawNotes, threshold, minDuration),
     [rawNotes, threshold, minDuration],
   );
-  const pages = Math.max(
-    1,
-    Math.ceil((track?.duration || 0) / ((60 / bpm) * 32)),
-  );
-  useEffect(() => {
-    setPage(0);
-  }, [bpm, track]);
   useEffect(
     () => () => {
       requestRef.current++;
@@ -82,63 +76,6 @@ export default function App() {
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = rate;
   }, [rate, track]);
-  useEffect(() => {
-    if (!playing || listen !== "notes" || !audioRef.current) return;
-    const context = new AudioContext();
-    const startTime = audioRef.current.currentTime;
-    void context.resume();
-    const master = context.createGain();
-    master.gain.value = 0.2;
-    master.connect(context.destination);
-    let scheduledUntil = startTime;
-    let firstSchedule = true;
-    const schedule = () => {
-      if (!audioRef.current) return;
-      const now = audioRef.current.currentTime;
-      const horizon = now + 0.6 * rate;
-      notes
-        .filter(
-          (n) =>
-            n.start + n.duration > now &&
-            n.start < horizon &&
-            (n.start >= scheduledUntil ||
-              (firstSchedule && n.start < startTime)),
-        )
-        .forEach((n) => {
-          const at = context.currentTime + Math.max(0, (n.start - now) / rate);
-          const len = Math.max(
-            0.04,
-            (n.start + n.duration - Math.max(now, n.start)) / rate,
-          );
-          const osc = context.createOscillator();
-          const gain = context.createGain();
-          osc.type = "triangle";
-          osc.frequency.value = 440 * 2 ** ((n.pitch - 69) / 12);
-          gain.gain.setValueAtTime(0, at);
-          gain.gain.linearRampToValueAtTime(
-            Math.min(0.6, n.confidence),
-            at + Math.min(0.01, len / 4),
-          );
-          gain.gain.exponentialRampToValueAtTime(0.001, at + len);
-          osc.connect(gain);
-          gain.connect(master);
-          osc.start(at);
-          osc.stop(at + len + 0.02);
-          osc.onended = () => {
-            osc.disconnect();
-            gain.disconnect();
-          };
-        });
-      scheduledUntil = Math.max(scheduledUntil, horizon);
-      firstSchedule = false;
-    };
-    schedule();
-    const timer = window.setInterval(schedule, 120);
-    return () => {
-      clearInterval(timer);
-      void context.close();
-    };
-  }, [playing, listen, notes, rate, epoch]);
   function startAnalysis(current: Track) {
     workerRef.current?.terminate();
     setRawNotes([]);
@@ -236,21 +173,49 @@ export default function App() {
     if (!audioRef.current || !track) return;
     audioRef.current.currentTime = value;
     setTime(value);
-    setEpoch((e) => e + 1);
   }
-  async function togglePlay() {
-    if (!audioRef.current) return;
-    if (playing) {
-      audioRef.current.pause();
+  const togglePlay = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (!audio.paused) {
+      audio.pause();
       return;
     }
-    if (audioRef.current.ended) seek(0);
+    if (audio.ended) {
+      audio.currentTime = 0;
+      setTime(0);
+    }
     try {
-      await audioRef.current.play();
+      await audio.play();
     } catch {
       setError("浏览器未能播放该音频，请再次点击播放或更换文件。");
     }
-  }
+  }, []);
+  useEffect(() => {
+    const restoreFocusOutline = () => document.documentElement.removeAttribute("data-playback-shortcut");
+    const handleSpace = (event: KeyboardEvent) => {
+      if (settingsOpen || help || (event.target instanceof Element && event.target.closest('[role="combobox"]'))) return;
+      if (event.code !== "Space" && event.key !== " ") {
+        if (event.type === "keydown") restoreFocusOutline();
+        return;
+      }
+      // Playback shortcuts should not draw a focus ring around the last clicked area.
+      document.documentElement.setAttribute("data-playback-shortcut", "");
+      // Capture both phases of the key press before native buttons or scrolling.
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (event.type === "keydown" && !event.repeat) void togglePlay();
+    };
+    window.addEventListener("keydown", handleSpace, true);
+    window.addEventListener("keyup", handleSpace, true);
+    window.addEventListener("pointerdown", restoreFocusOutline, true);
+    return () => {
+      window.removeEventListener("keydown", handleSpace, true);
+      window.removeEventListener("keyup", handleSpace, true);
+      window.removeEventListener("pointerdown", restoreFocusOutline, true);
+      restoreFocusOutline();
+    };
+  }, [togglePlay, settingsOpen, help]);
   const filePicker = () => inputRef.current?.click();
   const exportResult = async (kind: "midi" | "json") => {
     setExportOpen(false);
@@ -310,34 +275,11 @@ export default function App() {
             <Info size={15} /> 使用指南
           </button>
           <span className="version">BETA 0.1</span>
+          <button className="help-button" aria-haspopup="dialog" aria-expanded={settingsOpen}
+            onClick={() => setSettingsOpen(true)}><Settings size={16} />设置</button>
         </div>
       </header>
       <main>
-        <section className="intro">
-          <div>
-            <div className="eyebrow">FROM SOUND TO SCORE</div>
-            <h1>
-              让旋律，<span>有迹可循。</span>
-            </h1>
-            <p>放进一段音乐，让听见的灵感，变成看得见的音符。</p>
-          </div>
-          <div className="intro-note">
-            <span className="mini-note">♪</span>
-            <div>
-              每一段旋律
-              <br />
-              <b>都值得被记录</b>
-            </div>
-            <svg width="94" height="25" viewBox="0 0 94 25" aria-hidden="true">
-              <path
-                d="M1 15 Q6 -5 11 15 T21 15 T31 15 T41 15 T51 15 T61 15 T71 15 T81 15 T91 15"
-                fill="none"
-                stroke="#b7addb"
-                strokeWidth="1.5"
-              />
-            </svg>
-          </div>
-        </section>
         <div className="workspace">
           <aside className="sidebar">
             <section
@@ -435,8 +377,8 @@ export default function App() {
               </div>
               <div className="tempo-setting">
                 <div>
-                  <label htmlFor="bpm">谱面速度</label>
-                  <small>手动设定 · 影响节奏量化</small>
+                  <label htmlFor="bpm">导出速度</label>
+                  <small>手动设定 · 用于 MIDI 导出</small>
                 </div>
                 <div className="bpm-input">
                   <input
@@ -485,13 +427,24 @@ export default function App() {
             </div>
           </aside>
           <div className="main-column">
-            <section className="panel player-panel">
+            <section className="panel score-panel unified-score">
+              {track && (
+                <audio
+                  ref={audioRef}
+                  src={track.url}
+                  onPlay={() => setPlaying(true)}
+                  onPause={() => setPlaying(false)}
+                  onEnded={() => setPlaying(false)}
+                  onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
+                />
+              )}
+              <div className="score-toolbar">
               <div className="track-header">
                 <div className="file-symbol">
                   <FileAudio size={20} />
                 </div>
                 <div className="track-name">
-                  <strong>{track?.name || "等待你的第一段音乐"}</strong>
+                  <strong title={track?.name || "等待你的第一段音乐"}>{track?.name || "等待你的第一段音乐"}</strong>
                   <span>
                     {track
                       ? `${track.demo ? "合成示例 · " : ""}${formatTime(Math.ceil(track.duration))} · 本地音频`
@@ -517,63 +470,6 @@ export default function App() {
                           : "准备就绪"}
                 </span>
               </div>
-              <div
-                className="waveform"
-                role={track ? "slider" : "img"}
-                aria-label="音频播放进度"
-                aria-valuemin={0}
-                aria-valuemax={track?.duration || 0}
-                aria-valuenow={time}
-                tabIndex={track ? 0 : -1}
-                onKeyDown={(e) => {
-                  if (e.key === "ArrowRight")
-                    seek(Math.min(track?.duration || 0, time + 2));
-                  if (e.key === "ArrowLeft") seek(Math.max(0, time - 2));
-                }}
-                onClick={(e) => {
-                  if (track)
-                    seek(
-                      ((e.clientX -
-                        e.currentTarget.getBoundingClientRect().left) /
-                        e.currentTarget.clientWidth) *
-                        track.duration,
-                    );
-                }}
-              >
-                <svg
-                  viewBox="0 0 900 64"
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                >
-                  {(
-                    track?.peaks ||
-                    Array.from(
-                      { length: 180 },
-                      (_, i) =>
-                        0.08 +
-                        Math.abs(Math.sin(i * 0.71) * Math.cos(i * 0.13)) *
-                          0.46,
-                    )
-                  ).map((peak, i) => (
-                    <rect
-                      key={i}
-                      x={i * 5 + 1}
-                      y={32 - Math.max(2, peak * 29)}
-                      width="3"
-                      height={Math.max(4, peak * 58)}
-                      rx="1.5"
-                      fill={
-                        track && i / 180 <= time / track.duration
-                          ? "#7c6bd1"
-                          : track
-                            ? "#cbc5e6"
-                            : "#e0dced"
-                      }
-                    />
-                  ))}
-                </svg>
-                {!track && <span>你的声音，从这里开始</span>}
-              </div>
               <div className="player-controls">
                 <button
                   className="play-button"
@@ -591,53 +487,31 @@ export default function App() {
                   {formatTime(time)}{" "}
                   <span>/ {formatTime(Math.ceil(track?.duration || 0))}</span>
                 </span>
-                <div className="listening-toggle">
-                  <button
-                    className={listen === "original" ? "selected" : ""}
-                    onClick={() => setListen("original")}
-                  >
-                    <Volume2 size={13} /> 原音
-                  </button>
-                  <button
-                    disabled={!notes.length}
-                    className={listen === "notes" ? "selected" : ""}
-                    onClick={() => setListen("notes")}
-                  >
-                    <Piano size={13} /> 音符试听
-                  </button>
+                <div className="speed-label">
+                  <Select label="播放速度" value={String(rate)} onChange={(value) => setRate(Number(value))}
+                    options={[{ value: "0.5", label: "0.5×" }, { value: "0.75", label: "0.75×" }, { value: "1", label: "1.0×" }]} />
                 </div>
-                <label className="speed-label">
-                  <select
-                    aria-label="播放速度"
-                    value={rate}
-                    onChange={(e) => setRate(Number(e.target.value))}
-                  >
-                    <option value="0.5">0.5×</option>
-                    <option value="0.75">0.75×</option>
-                    <option value="1">1.0×</option>
-                  </select>
-                  <ChevronDown size={12} />
-                </label>
               </div>
-              {track && (
-                <audio
-                  ref={audioRef}
-                  src={track.url}
-                  muted={listen === "notes"}
-                  onPlay={() => setPlaying(true)}
-                  onPause={() => setPlaying(false)}
-                  onEnded={() => setPlaying(false)}
-                  onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
-                />
-              )}
-            </section>
-            <section className="panel score-panel">
-              <div className="score-toolbar">
-                <div className="score-heading">
-                  <span className="step-number">03</span>
-                  <h2>旋律工作台</h2>
-                  <span className="draft-badge">估算谱</span>
-                </div>
+
+                  <div className="zoom-controls">
+                    <button
+                      aria-label="缩小"
+                      onClick={() => setZoom(Math.max(minZoom, zoom / 1.25))}
+                      disabled={zoom <= minZoom}
+                    >
+                      <Minus size={13} />
+                    </button>
+                    <span>{Number((zoom * 100).toFixed(1))}%</span>
+                    <button
+                      aria-label="放大"
+                      onClick={() => setZoom(Math.min(MAX_ZOOM, zoom * 1.25))}
+                      disabled={zoom >= MAX_ZOOM}
+                    >
+                      <Plus size={13} />
+                    </button>
+                    <button onClick={() => setZoom(minZoom)} disabled={!track}
+                      title="显示整段音频" aria-label="显示整段音频">全曲</button>
+                  </div>
                 <div className="export-wrap">
                   <button
                     className="export-button"
@@ -657,61 +531,6 @@ export default function App() {
                     </div>
                   )}
                 </div>
-              </div>
-              <div className="view-toolbar">
-                <div className="view-tabs">
-                  <button
-                    className={view === "roll" ? "active" : ""}
-                    onClick={() => setView("roll")}
-                  >
-                    <Piano size={14} /> 钢琴卷帘
-                  </button>
-                  <button
-                    className={view === "score" ? "active" : ""}
-                    onClick={() => setView("score")}
-                  >
-                    <Music2 size={15} /> 五线谱
-                  </button>
-                </div>
-                {view === "roll" ? (
-                  <div className="zoom-controls">
-                    <button
-                      aria-label="缩小"
-                      onClick={() => setZoom(Math.max(0.5, zoom - 0.25))}
-                      disabled={zoom <= 0.5}
-                    >
-                      <Minus size={13} />
-                    </button>
-                    <span>{Math.round(zoom * 100)}%</span>
-                    <button
-                      aria-label="放大"
-                      onClick={() => setZoom(Math.min(3, zoom + 0.25))}
-                      disabled={zoom >= 3}
-                    >
-                      <Plus size={13} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="page-controls">
-                    <button
-                      aria-label="上一页"
-                      disabled={page === 0}
-                      onClick={() => setPage(page - 1)}
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-                    <span>
-                      {page + 1} / {pages}
-                    </span>
-                    <button
-                      aria-label="下一页"
-                      disabled={page >= pages - 1}
-                      onClick={() => setPage(page + 1)}
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
-                )}
               </div>
               {error && (
                 <div className="error-banner" role="alert">
@@ -739,66 +558,36 @@ export default function App() {
                   />
                 </div>
               )}
-              {view === "roll" ? (
-                <PianoRoll
-                  notes={notes}
-                  duration={track?.duration || 0}
-                  time={time}
-                  processed={processed}
-                  zoom={zoom}
-                  onSeek={seek}
-                  empty={!track}
-                />
-              ) : (
-                <Suspense
-                  fallback={<div className="score-loading">正在排版乐谱…</div>}
-                >
-                  <Score notes={notes} bpm={bpm} page={page} />
-                </Suspense>
-              )}
+              <PianoRoll
+                interactionSettings={interactionSettings}
+                samples={track?.samples}
+                notes={notes}
+                duration={track?.duration || 0}
+                time={time}
+                playing={playing}
+                audioRef={audioRef}
+                processed={processed}
+                zoom={zoom}
+                onZoomChange={setZoom}
+                onMinZoomChange={setMinZoom}
+                onSeek={seek}
+                empty={!track}
+              />
               {track && !notes.length && !busy && !error && (
                 <div className="no-notes">
                   {phase === "cancelled" && !rawNotes.length
-                    ? "已停止，还没有生成音符。点击重新分析即可再试。"
+                    ? "已停止，还没有生成音符。重新选择音频文件即可再试。"
                     : rawNotes.length
                       ? "当前过滤条件下没有音符，试着降低过滤强度或最短时长。"
                       : "没有识别到稳定音符。试试更清晰的独奏或哼唱片段。"}
                 </div>
               )}
-              <div className="score-footer">
-                <span>
-                  <span className="legend-dot" />{" "}
-                  {view === "roll"
-                    ? "颜色越深，模型响应越强"
-                    : "单声部草稿 · 节奏经过量化"}
-                </span>
-                <span>
-                  {notes.length
-                    ? `${notes.length} 个音符 · ${pitchName(Math.min(...notes.map((n) => n.pitch)))}–${pitchName(Math.max(...notes.map((n) => n.pitch)))}`
-                    : "音高 · 时值 · 旋律轮廓"}
-                </span>
-              </div>
             </section>
-            <div className="under-score">
-              <span>
-                <Info size={13} />{" "}
-                先捕捉旋律轮廓，再慢慢校准。识别结果是起点，不是最终定谱。
-              </span>
-              {track && !busy && (
-                <button onClick={() => startAnalysis(track)}>
-                  <RotateCcw size={12} /> 重新分析
-                </button>
-              )}
-            </div>
           </div>
         </div>
-        <footer className="footer">
-          <span>听见灵感，留住旋律。</span>
-          <span>
-            React + Basic Pitch <i>·</i> 本地计算，自在创作
-          </span>
-        </footer>
       </main>
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)}
+        settings={interactionSettings} onChange={setInteractionSettings} />
       {help && (
         <div className="modal-backdrop" onClick={() => setHelp(false)}>
           <section
@@ -844,8 +633,7 @@ export default function App() {
                 <b>看见旋律：</b>钢琴卷帘保留重叠音符，点击时间轴可以跳转原音。
               </li>
               <li>
-                <b>边听边校对：</b>切换原音 /
-                音符试听，放慢速度，调整过滤强度减少杂音。
+                <b>边听边校对：</b>播放原音，放慢速度，调整过滤强度减少杂音。
               </li>
               <li>
                 <b>带走灵感：</b>导出 MIDI 到你的音乐软件继续编辑，或导出 JSON
@@ -853,9 +641,7 @@ export default function App() {
               </li>
             </ol>
             <div className="help-note">
-              当前版本不做乐器分离、不自动识别速度与拍号。五线谱采用手动
-              BPM、4/4
-              拍和八分音符量化，只提取一条近似旋律。混音、人声、鼓声和混响可能导致错音、漏音。音符深浅表示模型响应强度，不是准确率。
+              当前版本不做乐器分离、不自动识别速度与拍号。混音、人声、鼓声和混响可能导致错音、漏音。音符深浅表示模型响应强度，不是准确率。
             </div>
             <button className="primary-button" onClick={() => setHelp(false)}>
               开始听谱 <ArrowUpRight size={16} />
