@@ -1507,3 +1507,26 @@ input[type="range"]::-moz-range-progress {
 .settings-row > .custom-select { width: 190px; max-width: 55%; }
 .theme-picker .select-trigger { padding: 2px 0; border: 0; background: transparent; }
 .speed-label .select-trigger { padding: 5px 7px; font-size: 10px; }
+
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.github-link:hover { color: var(--purple); }
+.product-intro { padding: 16px; }
+.product-intro h1 { margin: 0 0 8px; font-size: 15px; line-height: 1.6; }
+.product-intro p, .product-intro ol {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.product-intro ol { padding-left: 20px; }
+.product-intro summary { margin-top: 10px; cursor: pointer; font-size: 12px; color: var(--purple); }
+.product-intro summary:focus-visible { outline: 2px solid var(--purple); outline-offset: 4px; }
+@media (max-width: 760px) {
+  .product-intro { grid-column: 1 / -1; }
+  .github-link span { display: none; }
+}

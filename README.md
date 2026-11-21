@@ -65,3 +65,9 @@ npm run preview # 预览构建产物
 - [Tone.js MIDI](https://github.com/Tonejs/Midi)，MIT。
 
 第三方许可随各 npm 包保留；发布时请一并保留所用模型和依赖的许可声明。
+
+## SEO 与站点地址
+
+正式地址为 https://hear-score.lirentech.net/ 。首页 HTML 提供中文标题、描述、canonical、Open Graph / Twitter 分享信息和 WebApplication JSON-LD；首屏静态说明在 React 加载后由交互界面替换，界面侧栏保留功能说明与使用步骤。
+
+`public/robots.txt` 允许抓取，并声明 `public/sitemap.xml` 中的首页地址。更换域名时需同步修改这两个文件及 `index.html` 中的 canonical、og:url 和结构化数据 URL。发布后可以向搜索引擎站长平台提交 `https://hear-score.lirentech.net/sitemap.xml`；收录和排名由搜索引擎决定。

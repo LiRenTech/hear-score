@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AudioLines,
+  Github,
   Settings,
   Upload,
   ArrowUpRight,
@@ -268,6 +269,10 @@ export default function App() {
           </span>
         </a>
         <div className="header-right">
+          <a className="help-button github-link" href="https://github.com/LiRenTech/hear-score"
+            target="_blank" rel="noopener noreferrer" aria-label="在 GitHub 查看听谱源代码（新窗口打开）">
+            <Github size={16} aria-hidden="true" /><span>GitHub</span>
+          </a>
           <span className="local-badge">
             <span /> 浏览器内处理
           </span>
@@ -282,6 +287,19 @@ export default function App() {
       <main>
         <div className="workspace">
           <aside className="sidebar">
+            <section className="panel product-intro" aria-labelledby="product-title">
+              <h1 id="product-title">在线 AI 扒谱与音频转 MIDI</h1>
+              <p>听谱 Hearscore 免费在浏览器本地识别 MP3、WAV 音符，支持钢琴卷帘、原音变速播放和 MIDI / JSON 导出。</p>
+              <details>
+                <summary>使用步骤与识别范围</summary>
+                <ol>
+                  <li>导入最长 5 分钟、最大 50 MB 的音频。</li>
+                  <li>等待识别，播放原音并调整音符过滤条件。</li>
+                  <li>导出 MIDI，在音乐软件中继续编辑。</li>
+                </ol>
+                <p>音频不上传服务器。更适合清晰独奏；复杂混音可能出现错音、漏音，需要人工校对。当前不支持五线谱、MusicXML 或 PDF 导出。</p>
+              </details>
+            </section>
             <section
               className={`panel upload-panel ${dragging ? "dragging" : ""}`}
               onDragOver={(e) => {

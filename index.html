@@ -6,13 +6,54 @@
     <meta name="theme-color" content="#f7f7fb" />
     <meta
       name="description"
-      content="听谱 Hearscore：在浏览器里把声音变成可读、可听、可导出的估算乐谱。"
+      content="听谱 Hearscore 是免费的在线音频转 MIDI 与 AI 扒谱工具。导入 MP3、WAV，在浏览器本地识别音符，查看钢琴卷帘、放慢原音校对并导出 MIDI；音频不上传服务器。"
     />
-    <title>听谱 Hearscore · 让旋律有迹可循</title>
+    <title>听谱 Hearscore - 免费在线 AI 扒谱与音频转 MIDI 工具</title>
+    <link rel="canonical" href="https://hear-score.lirentech.net/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:site_name" content="听谱 Hearscore" />
+    <meta property="og:title" content="听谱 Hearscore - 免费在线 AI 扒谱与音频转 MIDI 工具" />
+    <meta property="og:description" content="导入 MP3、WAV，本地识别音符，查看钢琴卷帘并导出 MIDI。音频不上传服务器。" />
+    <meta property="og:url" content="https://hear-score.lirentech.net/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="听谱 Hearscore - 在线 AI 扒谱与音频转 MIDI" />
+    <meta name="twitter:description" content="免费在浏览器中识别音符、播放校对并导出 MIDI，音频留在你的设备。" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "听谱 Hearscore",
+        "url": "https://hear-score.lirentech.net/",
+        "description": "免费的在线 AI 扒谱与音频转 MIDI 工具，在浏览器本地识别音符，支持钢琴卷帘、原音播放和 MIDI 导出。",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Web",
+        "browserRequirements": "需要启用 JavaScript 并支持 Web Audio 和 WebAssembly 的现代浏览器",
+        "inLanguage": "zh-CN",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" },
+        "sameAs": "https://github.com/LiRenTech/hear-score",
+        "featureList": ["MP3、WAV 音频转音符", "浏览器本地音频处理", "钢琴卷帘", "原音变速播放", "MIDI 和 JSON 导出"]
+      }
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main style="display: block; padding: 24px; max-width: 800px; margin: auto">
+        <h1>听谱 Hearscore：在线 AI 扒谱与音频转 MIDI</h1>
+        <p>免费导入 MP3、WAV 音频，在浏览器本地识别音符，查看钢琴卷帘、放慢原音校对并导出 MIDI 或 JSON。音频不上传服务器。</p>
+        <h2>如何把音频转换为 MIDI？</h2>
+        <ol>
+          <li>选择或拖入音频文件，支持最长 5 分钟、最大 50 MB。</li>
+          <li>等待识别音符，播放原音并调整音符过滤条件。</li>
+          <li>导出 MIDI，在音乐软件中继续编辑。</li>
+        </ol>
+        <p>更适合清晰独奏。复杂混音可能出现错音、漏音，结果需要人工校对；当前不支持五线谱、MusicXML 或 PDF 导出。</p>
+        <a href="https://github.com/LiRenTech/hear-score">在 GitHub 查看听谱源代码</a>
+        <noscript><p>请启用 JavaScript 以使用本地音频识别和播放功能。</p></noscript>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
