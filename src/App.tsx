@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import {
   AudioLines,
   Github,
@@ -23,8 +23,10 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
-import type { Note, Phase, Track, WorkerMessage } from "./types";
+import type { AudioTrack, Note, Phase, Track, WorkerMessage } from "./types";
 import { decodeFile, demoFile, formatTime } from "./lib/audio";
+import { readMidi } from "./lib/midi";
+import { MidiPlayer } from "./lib/midi-player";
 import { download, exportMidi, filterNotes } from "./lib/notes";
 import Select from "./components/Select";
 import SettingsDialog from "./components/SettingsDialog";
@@ -45,6 +47,7 @@ export default function App() {
   const [bpmDraft, setBpmDraft] = useState("110");
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [source, setSource] = useState<"audio" | "midi">("audio");
   const [rate, setRate] = useState(1);
   const [zoom, setZoom] = useState(1);
   const [minZoom, setMinZoom] = useState(0.01);
@@ -58,26 +61,40 @@ export default function App() {
   const [exportOpen, setExportOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const midiRef = useRef<MidiPlayer | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const requestRef = useRef(0);
   const trackRef = useRef<Track | null>(null);
   const busy = ["decoding", "loading", "analyzing"].includes(phase);
   const notes = useMemo(
-    () => filterNotes(rawNotes, threshold, minDuration),
-    [rawNotes, threshold, minDuration],
+    () => track?.kind === "midi" ? track.notes : filterNotes(rawNotes, threshold, minDuration),
+    [track, rawNotes, threshold, minDuration],
   );
+  const canPlay = !!track && (source === "audio" || notes.length > 0);
   useEffect(
     () => () => {
       requestRef.current++;
       workerRef.current?.terminate();
-      if (trackRef.current) URL.revokeObjectURL(trackRef.current.url);
+      if (trackRef.current?.kind === "audio") URL.revokeObjectURL(trackRef.current.url);
+      midiRef.current?.dispose();
+      midiRef.current = null;
     },
     [],
   );
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = rate;
   }, [rate, track]);
-  function startAnalysis(current: Track) {
+  useEffect(() => {
+    const midi = midiRef.current;
+    if (midi?.active && !notes.length) {
+      setTime(midi.currentTime ?? 0);
+      midi.stop();
+      setPlaying(false);
+    } else {
+      midi?.update(notes, rate);
+    }
+  }, [rate, notes]);
+  function startAnalysis(current: AudioTrack) {
     workerRef.current?.terminate();
     setRawNotes([]);
     setProcessed(0);
@@ -132,9 +149,12 @@ export default function App() {
   }
   async function loadFile(file: File, demo = false) {
     const request = ++requestRef.current;
+    const isMidi = /\.midi?$/i.test(file.name);
     workerRef.current?.terminate();
     workerRef.current = null;
     audioRef.current?.pause();
+    midiRef.current?.stop();
+    setSource(isMidi ? "midi" : "audio");
     setPlaying(false);
     setTime(0);
     setError("");
@@ -142,20 +162,21 @@ export default function App() {
     setProgress(0);
     setProcessed(0);
     setPhase("decoding");
-    setStatus("正在读取音频…");
-    if (trackRef.current) URL.revokeObjectURL(trackRef.current.url);
+    setStatus(isMidi ? "正在读取 MIDI…" : "正在读取音频…");
+    if (trackRef.current?.kind === "audio") URL.revokeObjectURL(trackRef.current.url);
     trackRef.current = null;
     setTrack(null);
     try {
-      const decoded = await decodeFile(file);
+      const decoded = await (isMidi ? readMidi(file) : decodeFile(file));
       if (requestRef.current !== request) {
-        URL.revokeObjectURL(decoded.url);
+        if (decoded.kind === "audio") URL.revokeObjectURL(decoded.url);
         return;
       }
-      decoded.demo = demo;
+      if (decoded.kind === "audio") decoded.demo = demo;
       trackRef.current = decoded;
       setTrack(decoded);
-      startAnalysis(decoded);
+      if (decoded.kind === "audio") startAnalysis(decoded);
+      else setPhase("idle");
     } catch (e) {
       if (requestRef.current === request) {
         setError(e instanceof Error ? e.message : "音频读取失败");
@@ -170,12 +191,50 @@ export default function App() {
     setPhase("cancelled");
     setStatus("已停止 · 已生成的片段仍可查看");
   }
+  const getPlaybackTime = useCallback(() => source === "midi"
+    ? midiRef.current?.currentTime
+    : audioRef.current?.currentTime, [source]);
   function seek(value: number) {
-    if (!audioRef.current || !track) return;
-    audioRef.current.currentTime = value;
+    if (!track) return;
+    if (source === "midi") midiRef.current?.seek(value);
+    else if (audioRef.current) audioRef.current.currentTime = value;
     setTime(value);
   }
+  function switchSource(next: typeof source) {
+    if (next === source) return;
+    const position = getPlaybackTime() ?? time;
+    midiRef.current?.stop();
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      if (next === "audio") audio.currentTime = position;
+    }
+    setPlaying(false);
+    setTime(position);
+    setSource(next);
+  }
   const togglePlay = useCallback(async () => {
+    if (!track || !canPlay) return;
+    const request = requestRef.current;
+    if (source === "midi") {
+      const midi = midiRef.current ??= new MidiPlayer((position, ended) => {
+        setTime(ended ? position : Math.floor(position));
+        if (ended) setPlaying(false);
+      });
+      if (midi.active) {
+        setTime(midi.currentTime ?? time);
+        midi.stop();
+        setPlaying(false);
+        return;
+      }
+      try {
+        const position = time >= track.duration ? 0 : time;
+        if (await midi.play(notes, position, rate, track.duration)) setPlaying(true);
+      } catch {
+        if (request === requestRef.current) setError("浏览器未能播放 MIDI，请再次点击播放。");
+      }
+      return;
+    }
     const audio = audioRef.current;
     if (!audio) return;
     if (!audio.paused) {
@@ -188,10 +247,12 @@ export default function App() {
     }
     try {
       await audio.play();
-    } catch {
-      setError("浏览器未能播放该音频，请再次点击播放或更换文件。");
+    } catch (error) {
+      if (request === requestRef.current && !(error instanceof DOMException && error.name === "AbortError"))
+        setError("浏览器未能播放该音频，请再次点击播放或更换文件。");
     }
-  }, []);
+  }, [canPlay, notes, rate, source, time, track]);
+  const togglePlayShortcut = useEffectEvent(() => void togglePlay());
   useEffect(() => {
     const restoreFocusOutline = () => document.documentElement.removeAttribute("data-playback-shortcut");
     const handleSpace = (event: KeyboardEvent) => {
@@ -205,7 +266,7 @@ export default function App() {
       // Capture both phases of the key press before native buttons or scrolling.
       event.preventDefault();
       event.stopImmediatePropagation();
-      if (event.type === "keydown" && !event.repeat) void togglePlay();
+      if (event.type === "keydown" && !event.repeat) togglePlayShortcut();
     };
     window.addEventListener("keydown", handleSpace, true);
     window.addEventListener("keyup", handleSpace, true);
@@ -216,11 +277,11 @@ export default function App() {
       window.removeEventListener("pointerdown", restoreFocusOutline, true);
       restoreFocusOutline();
     };
-  }, [togglePlay, settingsOpen, help]);
+  }, [settingsOpen, help]);
   const filePicker = () => inputRef.current?.click();
   const exportResult = async (kind: "midi" | "json") => {
     setExportOpen(false);
-    if (!track || !notes.length) return;
+    if (track?.kind !== "audio" || !notes.length) return;
     try {
       const suffix = phase === "done" ? "" : "-部分转录";
       if (kind === "midi")
@@ -316,14 +377,14 @@ export default function App() {
             >
               <div className="section-label">
                 <span className="step-number">01</span> 导入声音{" "}
-                <span className="tiny-tag">本地音频</span>
+                <span className="tiny-tag">本地文件</span>
               </div>
               <input
                 ref={inputRef}
                 type="file"
-                accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac"
+                accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac,.mid,.midi"
                 className="visually-hidden"
-                aria-label="选择音频文件"
+                aria-label="选择音频或 MIDI 文件"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) void loadFile(file);
@@ -335,8 +396,8 @@ export default function App() {
                   <Upload size={24} />
                 </span>
                 <strong>{track ? "换一段新的音乐" : "把音乐拖到这里"}</strong>
-                <span>或点击选择音频文件</span>
-                <small>MP3、WAV 等 · 最长 5 分钟 · 50 MB</small>
+                <span>或点击选择音频或 MIDI 文件</span>
+                <small>MP3、WAV、MIDI · 最长 5 分钟 · 50 MB</small>
               </button>
               <button
                 className="demo-button"
@@ -368,6 +429,7 @@ export default function App() {
                 max="0.75"
                 step="0.05"
                 value={threshold}
+                disabled={track?.kind === "midi"}
                 onChange={(e) => setThreshold(Number(e.target.value))}
               />
               <div className="range-labels">
@@ -387,6 +449,7 @@ export default function App() {
                 max="0.4"
                 step="0.02"
                 value={minDuration}
+                disabled={track?.kind === "midi"}
                 onChange={(e) => setMinDuration(Number(e.target.value))}
               />
               <div className="range-labels">
@@ -405,6 +468,7 @@ export default function App() {
                     min="40"
                     max="240"
                     value={bpmDraft}
+                    disabled={track?.kind === "midi"}
                     onChange={(e) => setBpmDraft(e.target.value)}
                     onBlur={() => {
                       const n = Math.round(Number(bpmDraft));
@@ -424,6 +488,7 @@ export default function App() {
               </div>
               <button
                 className="reset-button"
+                disabled={track?.kind === "midi"}
                 onClick={() => {
                   setThreshold(0.3);
                   setMinDuration(0.12);
@@ -446,14 +511,14 @@ export default function App() {
           </aside>
           <div className="main-column">
             <section className="panel score-panel unified-score">
-              {track && (
+              {track?.kind === "audio" && (
                 <audio
                   ref={audioRef}
                   src={track.url}
-                  onPlay={() => setPlaying(true)}
-                  onPause={() => setPlaying(false)}
-                  onEnded={() => setPlaying(false)}
-                  onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
+                  onPlay={() => { if (source === "audio") setPlaying(true); }}
+                  onPause={() => { if (source === "audio") setPlaying(false); }}
+                  onEnded={() => { if (source === "audio") setPlaying(false); }}
+                  onTimeUpdate={(e) => { if (source === "audio") setTime(e.currentTarget.currentTime); }}
                 />
               )}
               <div className="score-toolbar">
@@ -465,7 +530,7 @@ export default function App() {
                   <strong title={track?.name || "等待你的第一段音乐"}>{track?.name || "等待你的第一段音乐"}</strong>
                   <span>
                     {track
-                      ? `${track.demo ? "合成示例 · " : ""}${formatTime(Math.ceil(track.duration))} · 本地音频`
+                      ? `${track.kind === "audio" && track.demo ? "合成示例 · " : ""}${formatTime(Math.ceil(track.duration))} · ${track.kind === "midi" ? "MIDI" : "本地音频"}`
                       : "上传后自动开始识别，也可以先体验示例"}
                   </span>
                 </div>
@@ -478,7 +543,7 @@ export default function App() {
                     <span className="status-dot" />
                   )}
                   {busy
-                    ? "识别中"
+                    ? phase === "decoding" ? "读取中" : "识别中"
                     : phase === "done"
                       ? "已完成"
                       : phase === "cancelled"
@@ -492,7 +557,7 @@ export default function App() {
                 <button
                   className="play-button"
                   aria-label={playing ? "暂停" : "播放"}
-                  disabled={!track}
+                  disabled={!canPlay}
                   onClick={() => void togglePlay()}
                 >
                   {playing ? (
@@ -505,6 +570,12 @@ export default function App() {
                   {formatTime(time)}{" "}
                   <span>/ {formatTime(Math.ceil(track?.duration || 0))}</span>
                 </span>
+                {track?.kind === "audio" && (notes.length > 0 || source === "midi") && (
+                  <div className="speed-label">
+                    <Select label="播放音源" value={source} onChange={switchSource}
+                      options={[{ value: "audio", label: "原音" }, { value: "midi", label: "MIDI" }]} />
+                  </div>
+                )}
                 <div className="speed-label">
                   <Select label="播放速度" value={String(rate)} onChange={(value) => setRate(Number(value))}
                     options={[{ value: "0.5", label: "0.5×" }, { value: "0.75", label: "0.75×" }, { value: "1", label: "1.0×" }]} />
@@ -533,7 +604,7 @@ export default function App() {
                 <div className="export-wrap">
                   <button
                     className="export-button"
-                    disabled={!notes.length}
+                    disabled={track?.kind !== "audio" || !notes.length}
                     onClick={() => setExportOpen(!exportOpen)}
                   >
                     <Download size={14} /> 导出 <ChevronDown size={12} />
@@ -578,13 +649,13 @@ export default function App() {
               )}
               <PianoRoll
                 interactionSettings={interactionSettings}
-                samples={track?.samples}
+                samples={track?.kind === "audio" ? track.samples : undefined}
                 notes={notes}
                 duration={track?.duration || 0}
                 time={time}
                 playing={playing}
-                audioRef={audioRef}
-                processed={processed}
+                getPlaybackTime={getPlaybackTime}
+                processed={track?.kind === "midi" ? track.duration : processed}
                 zoom={zoom}
                 onZoomChange={setZoom}
                 onMinZoomChange={setMinZoom}

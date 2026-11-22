@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Note } from "../types";
 import AudioWaveform from "./AudioWaveform";
 import { BASE_PIXELS_PER_SECOND, MAX_ZOOM, minimumZoom, timelineStep, zoomedScrollLeft } from "../lib/timeline";
@@ -12,7 +12,7 @@ interface Props {
   duration: number;
   time: number;
   playing: boolean;
-  audioRef: RefObject<HTMLAudioElement | null>;
+  getPlaybackTime: () => number | undefined;
   processed: number;
   zoom: number;
   onZoomChange: (zoom: number) => void;
@@ -35,7 +35,7 @@ export default function PianoRoll({
   duration,
   time,
   playing,
-  audioRef,
+  getPlaybackTime,
   processed,
   zoom,
   onZoomChange,
@@ -107,8 +107,15 @@ export default function PianoRoll({
     if (!interactionSettings.middleDrag) stopPan();
   }, [interactionSettings.middleDrag, stopPan]);
   const shown = empty ? DEMO : notes;
-  const low = 21;
-  const high = 108;
+  const [low, high] = useMemo(() => {
+    let low = 21;
+    let high = 108;
+    for (const note of shown) {
+      low = Math.min(low, note.pitch);
+      high = Math.max(high, note.pitch);
+    }
+    return [low, high];
+  }, [shown]);
   const [viewportWidth, setViewportWidth] = useState(0);
   const [rowHeight, setRowHeight] = useState(12);
   const header = 0;
@@ -221,7 +228,7 @@ export default function PianoRoll({
     const draw = () => {
       // Read the audio clock every frame; timeupdate is too sparse for animation.
       // Move only the playhead instead of rendering the entire score every frame.
-      const x = (audioRef.current?.currentTime ?? time) * scale;
+      const x = (getPlaybackTime() ?? time) * scale;
       playheadRef.current?.setAttribute("transform", `translate(${x} 0)`);
       if (waveformPlayheadRef.current)
         waveformPlayheadRef.current.style.transform = `translateX(${x}px)`;
@@ -237,7 +244,7 @@ export default function PianoRoll({
     };
     draw();
     return () => cancelAnimationFrame(frame);
-  }, [time, playing, audioRef, scale, empty, viewportWidth]);
+  }, [time, playing, getPlaybackTime, scale, empty, viewportWidth]);
   return (
     <div
       className={`roll ${empty ? "is-placeholder" : ""}`}
@@ -285,7 +292,7 @@ export default function PianoRoll({
     >
       <div className="roll-content" style={{ width: width + 45 }}>
         <div className="timeline-header" style={{ height: timelineHeight }}>
-          <div className="timeline-labels"><span>音频</span><span>音高</span></div>
+          <div className="timeline-labels"><span>{!empty && !samples ? "MIDI" : "音频"}</span><span>音高</span></div>
           <div className="timeline-track" style={{ width }}>
             <AudioWaveform samples={samples} duration={duration} time={time}
               scale={scale} width={width} onSeek={onSeek} onHover={showSeekPreview} />
@@ -362,7 +369,7 @@ export default function PianoRoll({
             aria-label={
               empty
                 ? "上传前的音符示意"
-                : `识别到的 ${notes.length} 个音符，横轴时间，纵轴音高`
+                : `${notes.length} 个音符，横轴时间，纵轴音高`
             }
 
           >

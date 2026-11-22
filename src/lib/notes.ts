@@ -1,4 +1,5 @@
 import type { Note } from "../types";
+import { loadMidi } from "./midi";
 const NAMES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
 export const pitchName = (pitch: number) =>
   `${NAMES[pitch % 12]}${Math.floor(pitch / 12) - 1}`;
@@ -28,7 +29,7 @@ export function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 export async function exportMidi(notes: Note[], bpm: number, name: string) {
-  const { Midi } = await import("@tonejs/midi");
+  const Midi = await loadMidi();
   const midi = new Midi();
   midi.header.setTempo(bpm);
   const track = midi.addTrack();

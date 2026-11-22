@@ -1,7 +1,7 @@
-import type { Track } from "../types";
+import type { AudioTrack } from "../types";
 export const SAMPLE_RATE = 22050;
 export const MAX_SECONDS = 300;
-export async function decodeFile(file: File): Promise<Track> {
+export async function decodeFile(file: File): Promise<AudioTrack> {
   if (file.size > 50 * 1024 * 1024)
     throw new Error("文件超过 50 MB。请先裁剪音频，再试一次。");
   if (file.size === 0) throw new Error("这个文件是空的，请选择有效音频。");
@@ -30,6 +30,7 @@ export async function decodeFile(file: File): Promise<Track> {
   const mono = await offline.startRendering();
   const samples = mono.getChannelData(0).slice();
   return {
+    kind: "audio",
     name: file.name,
     duration: buffer.duration,
     samples,

@@ -1264,6 +1264,14 @@ html[data-playback-shortcut] :focus {
 .unified-score .status-pill {
   flex-shrink: 0;
 }
+@media (761px <= width <= 1050px) {
+  .unified-score .score-toolbar:has([aria-label="播放音源"]) {
+    flex-wrap: wrap;
+  }
+  .unified-score .score-toolbar:has([aria-label="播放音源"]) .track-header {
+    flex-basis: 100%;
+  }
+}
 @media (max-width: 760px) {
   .unified-score .score-toolbar {
     flex-wrap: wrap;

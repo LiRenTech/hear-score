@@ -4,13 +4,21 @@ export interface Note {
   duration: number;
   confidence: number;
 }
-export interface Track {
+interface TrackInfo {
   name: string;
   duration: number;
+}
+export interface AudioTrack extends TrackInfo {
+  kind: "audio";
   samples: Float32Array;
   url: string;
   demo: boolean;
 }
+export interface MidiTrack extends TrackInfo {
+  kind: "midi";
+  notes: Note[];
+}
+export type Track = AudioTrack | MidiTrack;
 export type Phase =
   | "idle"
   | "decoding"
