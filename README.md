@@ -59,13 +59,25 @@ npm run preview # 预览构建产物
 
 已用用户提供的《Promise》（4 分 40 秒 MP3）跑完整流程：修复 WASM 兼容问题后，在本机浏览器约半分钟内完成，默认过滤保留 3177 个候选音符；过滤强度 50% 时为 1148 个。数量不是准确率指标，仍需要人工校对。详见 `VALIDATION.md`。
 
-## 上游资料与许可
+## 开源协议
+
+Copyright 2026 LiRenTech。
+
+本项目原创代码采用 [Apache License 2.0](LICENSE)，版权声明见 [NOTICE](NOTICE)。允许在遵守协议条款的前提下使用、修改、分发和商业使用。
+
+第三方代码、模型和资源仍遵循各自的许可证，不因本项目采用 Apache-2.0 而改变。
+
+### 上游资料与许可
 
 - [Spotify Basic Pitch TypeScript](https://github.com/spotify/basic-pitch-ts)，Apache-2.0，模型来自其 npm 包。
-- [TensorFlow.js](https://github.com/tensorflow/tfjs)，Apache-2.0。
+- [TensorFlow.js](https://github.com/tensorflow/tfjs)，Apache-2.0；其中 Layers 还包含 MIT 授权内容。
 - [Tone.js MIDI](https://github.com/Tonejs/Midi)，MIT。
+- [React](https://github.com/facebook/react)，MIT。
+- [Lucide](https://github.com/lucide-icons/lucide)，ISC，包含源自 Feather 的 MIT 授权内容。
 
-第三方许可随各 npm 包保留；发布时请一并保留所用模型和依赖的许可声明。
+补充的模型、推理依赖许可见 [第三方声明](public/THIRD_PARTY_NOTICES.txt)。安装依赖和构建时会复制项目许可、模型及 WASM 声明；Vite 还会为主线程打包的依赖生成 `DEPENDENCY_LICENSES.txt`。发布时请保留这些文件及模型、WASM 目录内的许可文件。
+
+升级推理依赖或模型后，应同步核对并更新第三方声明；其对应版本和来源记录在声明文件内。
 
 ## SEO 与站点地址
 

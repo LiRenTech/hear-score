@@ -11,5 +11,8 @@ export default defineConfig({
     ],
   },
   worker: { format: "es" },
-  build: { chunkSizeWarningLimit: 1700 },
+  build: {
+    chunkSizeWarningLimit: 1700,
+    license: { fileName: "DEPENDENCY_LICENSES.txt" },
+  },
 });

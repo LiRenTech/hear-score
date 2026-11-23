@@ -5,3 +5,5 @@ work/
 *.tsbuildinfo
 public/model/
 public/wasm/
+public/LICENSE
+public/NOTICE
