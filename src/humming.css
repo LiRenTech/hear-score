@@ -1,0 +1,63 @@
+.humming-record-panel, .humming-settings { padding: 22px; }
+.humming-eyebrow { display: flex; align-items: center; gap: 8px; color: var(--purple); font-size: 12px; letter-spacing: 1.5px; }
+.humming-record-panel h1 { font-size: 27px; margin: 16px 0 8px; font-weight: 650; }
+.humming-description { font-size: 16px; line-height: 1.8; color: var(--muted); margin: 0; }
+.humming-mic { display: grid; place-items: center; width: 68px; height: 68px; margin: 25px auto 18px; background: var(--soft); color: var(--purple); border: 1px solid var(--line); }
+.humming-mic.is-recording { color: var(--error-text); background: var(--error-bg); animation: humming-pulse 1.8s ease-in-out infinite; }
+.humming-status { min-height: 22px; margin: 0; font-size: 14px; text-align: center; color: var(--muted); }
+.humming-clock { text-align: center; font: 500 30px ui-monospace, monospace; margin: 15px 0 20px; font-variant-numeric: tabular-nums; }
+.humming-clock span { font-size: 14px; color: var(--muted); }
+.humming-record-button { min-height: 45px; width: 100%; background: var(--accent-fill); color: var(--on-accent); font-size: 16px; }
+.humming-record-button.is-recording { color: var(--error-text); background: var(--error-bg); border: 1px solid currentColor; }
+.humming-caption { font-size: 12px; color: var(--muted); line-height: 1.7; margin: 10px 0 16px; }
+.humming-record-panel > .humming-caption { text-align: center; min-height: 40px; }
+.humming-input-level { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.humming-meter { height: 7px; background: var(--line); overflow: hidden; }
+.humming-meter i { display: block; height: 100%; background: var(--purple); transition: width 70ms linear; }
+.humming-privacy { display: flex; align-items: flex-start; gap: 6px; font-size: 12px; color: var(--muted); line-height: 1.6; margin-top: 20px; }
+.humming-privacy svg { margin-top: 2px; }
+.humming-settings h2 { margin: 0 0 22px; font-size: 16px; }
+.humming-settings .setting-label, .humming-settings .tempo-setting label { font-size: 14px; }
+.humming-settings .range-labels { font-size: 12px; }
+.humming-settings .tempo-setting small { font-size: 12px; line-height: 1.6; }
+.humming-settings .bpm-input { flex-shrink: 0; }
+.humming-tip { display: flex; gap: 9px; padding: 0 20px 20px; color: var(--muted); }
+.humming-tip svg { margin-top: 3px; }
+.humming-tip p { margin: 0; font-size: 14px; line-height: 1.8; }
+.humming-score-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 24px; border-bottom: 1px solid var(--line); }
+.humming-score-heading h2 { margin: 0; font-size: 20px; font-weight: 600; }
+.humming-score-heading p { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+.humming-score-heading .status-pill { font-size: 12px; }
+.humming-score .roll-placeholder-label { position: sticky; bottom: 16px; left: auto; transform: none; width: max-content; max-width: calc(100% - 64px); margin: 0 auto; white-space: normal; text-align: center; line-height: 1.8; }
+.humming-live-strip { display: grid; grid-template-columns: repeat(4, 1fr); padding: 20px 24px; background: var(--soft); border-bottom: 1px solid var(--line); gap: 14px; }
+.humming-live-strip > div { display: flex; flex-direction: column; gap: 8px; border-right: 1px solid var(--line); }
+.humming-live-strip > div:last-child { border: 0; }
+.humming-live-strip span { color: var(--muted); font-size: 12px; }
+.humming-live-strip strong { font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.humming-live-strip > div:first-child strong { color: var(--purple); }
+.humming-live-strip small { font-size: 12px; color: var(--muted); }
+.humming-score.unified-score .score-toolbar { flex-wrap: wrap; gap: 14px; padding: 14px 20px; }
+.humming-score .score-toolbar > .export-button { margin-left: auto; min-height: 34px; }
+.humming-score .player-controls { gap: 12px; }
+.humming-score-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.humming-score-footer button { border: 1px solid var(--line); padding: 8px 10px; white-space: nowrap; color: var(--text); font-size: 14px; }
+.humming-notice { display: flex; align-items: center; gap: 8px; background: var(--soft); color: var(--muted); padding: 12px 20px; font-size: 14px; }
+@keyframes humming-pulse { 50% { box-shadow: 0 0 0 8px var(--error-bg); } }
+@media (max-width: 760px) {
+  .humming-record-panel, .humming-settings { padding: 18px; }
+  .humming-record-panel .humming-mic { display: none; }
+  .humming-status { margin-top: 20px; }
+  .humming-score-heading { padding: 18px; }
+  .humming-score-heading h2 { font-size: 18px; }
+  .humming-live-strip { padding: 16px; gap: 10px; }
+  .humming-live-strip strong { font-size: 18px; }
+  .humming-score.unified-score .player-controls { flex-wrap: wrap; flex-shrink: 1; min-width: 0; }
+  .humming-score .score-toolbar .zoom-controls { margin-left: 0; }
+  .humming-score-footer { flex-wrap: wrap; padding: 12px 16px; }
+  .humming-score .roll-placeholder-label { width: 75%; text-align: center; line-height: 1.8; }
+}
+@media (max-width: 600px) {
+  .humming-page .sidebar { display: flex; flex-direction: column; gap: 12px; }
+  .humming-page .humming-tip { padding: 6px 18px 18px; }
+}
+@media (prefers-reduced-motion: reduce) { .humming-mic.is-recording { animation: none; } }

@@ -10,12 +10,13 @@ interface Props {
   width: number;
   onSeek: (time: number) => void;
   onHover: (x: number | null) => void;
+  seekEnabled?: boolean;
 }
 
-export default function AudioWaveform({ samples, duration, time, scale, width, onSeek, onHover }: Props) {
+export default function AudioWaveform({ samples, duration, time, scale, width, onSeek, onHover, seekEnabled = true }: Props) {
   const waveformRef = useRef<HTMLDivElement>(null);
   const hoverClientX = useRef<number | null>(null);
-  const seekable = duration > 0;
+  const seekable = duration > 0 && seekEnabled;
   useLayoutEffect(() => {
     const update = () => {
       const element = waveformRef.current;
@@ -89,7 +90,7 @@ export default function AudioWaveform({ samples, duration, time, scale, width, o
         <line x1={0} x2={seekable ? duration * scale : width} y1={40} y2={40} stroke="var(--wave-idle)" />
         <path d={path} transform={`scale(${duration * scale / columns} 1)`} fill="var(--wave)" />
       </svg>
-      {!seekable && <span>你的声音，从这里开始</span>}
+      {!seekable && <span>{seekEnabled ? "你的声音，从这里开始" : "正在聆听，音符随哼唱实时出现"}</span>}
     </div>
   );
 }

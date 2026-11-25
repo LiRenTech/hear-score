@@ -19,6 +19,11 @@ interface Props {
   onMinZoomChange: (zoom: number) => void;
   onSeek: (time: number) => void;
   empty: boolean;
+  auditionEnabled?: boolean;
+  seekEnabled?: boolean;
+  timelineLabel?: string;
+  emptyLabel?: string;
+  followPitch?: number | null;
 }
 const DEMO = [
   60, 64, 67, 72, 71, 67, 64, 62, 65, 69, 72, 74, 72, 67, 64, 60,
@@ -42,6 +47,11 @@ export default function PianoRoll({
   onMinZoomChange,
   onSeek,
   empty,
+  auditionEnabled = true,
+  seekEnabled = true,
+  timelineLabel,
+  emptyLabel = "谱面示意 · 你的旋律即将在这里出现",
+  followPitch,
 }: Props) {
   const previewRef = useRef<PianoPreview | null>(null);
   const auditionRef = useRef<{ pointerId: number; element: HTMLDivElement; pitch: number | null } | null>(null);
@@ -67,6 +77,9 @@ export default function PianoRoll({
     if (active?.element.hasPointerCapture(active.pointerId))
       active.element.releasePointerCapture(active.pointerId);
   }, []);
+  useLayoutEffect(() => {
+    if (!auditionEnabled) stopAudition();
+  }, [auditionEnabled, stopAudition]);
   useLayoutEffect(() => {
     const hide = () => { if (document.hidden) stopAudition(); };
     window.addEventListener("blur", stopAudition);
@@ -214,6 +227,14 @@ export default function PianoRoll({
     }
   }, [rowHeight]);
   useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el || followPitch == null || panRef.current || performance.now() < followAfterRef.current) return;
+    const y = (high - followPitch) * rowHeight;
+    const visibleHeight = el.clientHeight - timelineHeight;
+    if (y < el.scrollTop + rowHeight || y + rowHeight > el.scrollTop + visibleHeight - rowHeight)
+      el.scrollTop = Math.max(0, y - visibleHeight / 2);
+  }, [followPitch, rowHeight, high]);
+  useLayoutEffect(() => {
     if (scrollRef.current && zoomAnchorRef.current !== null) {
       scrollRef.current.scrollLeft = zoomAnchorRef.current;
       zoomAnchorRef.current = null;
@@ -251,8 +272,8 @@ export default function PianoRoll({
       ref={scrollRef}
       tabIndex={0}
       role="region"
-      aria-label="钢琴卷帘，按空格播放或暂停，左键按住音高行试听，松开停止。滚轮快捷键和中键拖拽可在设置中调整。"
-      aria-keyshortcuts="Space"
+      aria-label={auditionEnabled ? "钢琴卷帘，按空格播放或暂停，左键按住音高行试听，松开停止。滚轮快捷键和中键拖拽可在设置中调整。" : "钢琴卷帘，实时显示哼唱音符，录音时暂停琴键试听。"}
+      aria-keyshortcuts={seekEnabled ? "Space" : undefined}
       onPointerDown={(event) => {
         const el = event.currentTarget;
         el.focus({ preventScroll: true });
@@ -292,10 +313,10 @@ export default function PianoRoll({
     >
       <div className="roll-content" style={{ width: width + 45 }}>
         <div className="timeline-header" style={{ height: timelineHeight }}>
-          <div className="timeline-labels"><span>{!empty && !samples ? "MIDI" : "音频"}</span><span>音高</span></div>
+          <div className="timeline-labels"><span>{timelineLabel || (!empty && !samples ? "MIDI" : "音频")}</span><span>音高</span></div>
           <div className="timeline-track" style={{ width }}>
             <AudioWaveform samples={samples} duration={duration} time={time}
-              scale={scale} width={width} onSeek={onSeek} onHover={showSeekPreview} />
+              scale={scale} width={width} onSeek={onSeek} onHover={showSeekPreview} seekEnabled={seekEnabled} />
             <svg className="timeline-ruler" width={width} height={30} aria-hidden="true">
             {Array.from({ length: Math.ceil(width / (scale * step)) + 1 }, (_, i) => (
               <g key={i}>
@@ -327,7 +348,7 @@ export default function PianoRoll({
         {auditionError && <div role="alert" className="audition-error">{auditionError}</div>}
         <div className="roll-notes" style={{ height }}
           onPointerDown={(event) => {
-            if (event.button !== 0 || !event.isPrimary || panRef.current) return;
+            if (!auditionEnabled || event.button !== 0 || !event.isPrimary || panRef.current) return;
             event.preventDefault();
             stopAudition();
             const element = event.currentTarget;
@@ -368,7 +389,7 @@ export default function PianoRoll({
             role="img"
             aria-label={
               empty
-                ? "上传前的音符示意"
+                ? emptyLabel
                 : `${notes.length} 个音符，横轴时间，纵轴音高`
             }
 
@@ -454,7 +475,7 @@ export default function PianoRoll({
       </div>
       {empty && (
         <div className="roll-placeholder-label">
-          谱面示意 · 你的旋律即将在这里出现
+          {emptyLabel}
         </div>
       )}
     </div>

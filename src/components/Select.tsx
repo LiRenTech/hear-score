@@ -6,10 +6,11 @@ interface Props<T extends string> {
   value: T;
   options: readonly { value: T; label: string }[];
   onChange: (value: T) => void;
+  disabled?: boolean;
 }
 
 /** A themed select-only combobox. Popover keeps menus above dialogs and scrollers. */
-export default function Select<T extends string>({ label, value, options, onChange }: Props<T>) {
+export default function Select<T extends string>({ label, value, options, onChange, disabled = false }: Props<T>) {
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -19,10 +20,14 @@ export default function Select<T extends string>({ label, value, options, onChan
   const close = () => menu.current?.hidePopover();
   const show = () => { setActive(selected); menu.current?.showPopover(); };
   const choose = (index: number) => {
+    if (disabled) return;
     onChange(options[index].value);
     close();
     trigger.current?.focus({ preventScroll: true });
   };
+  useLayoutEffect(() => {
+    if (disabled) menu.current?.hidePopover();
+  }, [disabled]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -62,6 +67,7 @@ export default function Select<T extends string>({ label, value, options, onChan
   return (
     <div className="custom-select">
       <button ref={trigger} type="button" className="select-trigger" role="combobox"
+        disabled={disabled}
         aria-label={label} aria-haspopup="listbox" aria-expanded={open} aria-controls={id}
         aria-activedescendant={open ? `${id}-${active}` : undefined}
         onClick={() => open ? close() : show()}

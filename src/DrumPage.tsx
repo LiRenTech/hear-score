@@ -184,7 +184,7 @@ export default function DrumPage() {
   return <div className="app-shell drum-page">
     <header className="topbar">
       <a className="brand" href="#/" aria-label="听谱首页"><span className="brand-icon"><AudioLines size={22} /></span><span>听谱 <small>HEARSCORE</small></span></a>
-      <WorkspaceNav drums />
+      <WorkspaceNav mode="drums" />
       <div className="header-right"><span className="local-badge"><span />浏览器内处理</span><ThemePicker /></div>
     </header>
     <main><div className="workspace drum-workspace">
