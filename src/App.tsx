@@ -32,6 +32,7 @@ import Select from "./components/Select";
 import SettingsDialog from "./components/SettingsDialog";
 import { readSettings, SETTINGS_KEY } from "./lib/settings";
 import PianoRoll from "./components/PianoRoll";
+import WorkspaceNav from "./components/WorkspaceNav";
 import { MAX_ZOOM } from "./lib/timeline";
 export default function App() {
   const [track, setTrack] = useState<Track | null>(null);
@@ -329,6 +330,7 @@ export default function App() {
             听谱 <small>HEARSCORE</small>
           </span>
         </a>
+        <WorkspaceNav />
         <div className="header-right">
           <a className="help-button github-link" href="https://github.com/LiRenTech/hear-score"
             target="_blank" rel="noopener noreferrer" aria-label="在 GitHub 查看听谱源代码（新窗口打开）">

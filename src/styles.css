@@ -37,6 +37,20 @@
   --success: #79a18c;
   --backdrop: #28203566;
 }
+.workspace-nav { display: flex; align-items: center; gap: 4px; margin: 0 12px; }
+.workspace-nav a { display: inline-flex; align-items: center; gap: 7px; padding: 9px 12px; font-size: 14px; color: var(--muted); white-space: nowrap; }
+.workspace-nav a[aria-current="page"] { color: var(--purple); background: var(--soft); }
+.workspace-nav a:hover { background: var(--soft); }
+.route-loading { padding: 32px; }
+@media (max-width: 1050px) { .topbar:has(.workspace-nav) .local-badge, .topbar:has(.workspace-nav) .version { display: none; } }
+@media (max-width: 760px) { .workspace-nav { margin: 0 4px; } .workspace-nav a { padding: 8px 6px; font-size: 12px; } .topbar:has(.workspace-nav) .brand small { display: none; } }
+@media (max-width: 480px) { .topbar:has(.workspace-nav) .github-link { display: none; } .workspace-nav a { gap: 4px; } }
+@media (max-width: 600px) {
+  .app-shell .topbar:has(.workspace-nav) { height: auto; min-height: 56px; flex-wrap: wrap; gap: 6px; padding: 8px 12px 0; }
+  .topbar:has(.workspace-nav) .brand, .topbar:has(.workspace-nav) .help-button { white-space: nowrap; flex-shrink: 0; }
+  .topbar .workspace-nav { order: 3; flex: 0 0 100%; margin: 0; border-top: 1px solid var(--line); }
+  .topbar .workspace-nav a { flex: 1; justify-content: center; padding: 9px; }
+}
 :root[data-theme="dark"] {
   color-scheme: dark;
   --text: #eeeaf6;

@@ -1,0 +1,104 @@
+.drum-page { --drum-accent: #4eaaa1; }
+.drum-workspace { grid-template-columns: 300px minmax(0, 1fr); gap: 16px; padding: 16px; }
+.drum-page h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.drum-page .sidebar { gap: 14px; }
+.drum-intro, .drum-upload, .drum-settings { padding: 20px; }
+.drum-intro { border-top: 3px solid var(--drum-accent); }
+.drum-eyebrow { display: flex; gap: 8px; align-items: center; color: var(--drum-accent); font-size: 12px; letter-spacing: 1px; }
+.drum-eyebrow span { margin-left: auto; padding: 3px 6px; background: var(--soft); color: var(--muted); font-size: 12px; letter-spacing: 0; }
+.drum-intro h1 { font-size: 23px; line-height: 1.45; margin: 20px 0 10px; letter-spacing: -0.5px; }
+.drum-intro p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.8; }
+.drum-dropzone { display: flex; flex-direction: column; width: 100%; gap: 11px; border: 1px dashed var(--grid-major); margin-top: 16px; padding: 24px 8px; background: var(--soft); }
+.drum-dropzone svg { color: var(--drum-accent); margin-bottom: 4px; }
+.drum-dropzone strong { font-size: 16px; font-weight: 500; }
+.drum-dropzone span { color: var(--muted); font-size: 14px; }
+.drum-dropzone small { font-size: 12px; color: var(--muted); }
+.drum-upload.dragging { border-color: var(--drum-accent); }
+.drum-demo { width: 100%; padding: 15px 0; color: var(--purple); font-size: 14px; }
+.drum-privacy { display: flex; gap: 7px; justify-content: center; margin: 0; color: var(--muted); font-size: 12px; }
+.drum-field { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; font-size: 14px; }
+.drum-field > span { display: flex; justify-content: space-between; }
+.drum-field b { font-weight: 400; color: var(--muted); }
+.drum-field .select-trigger { padding: 9px; font-size: 14px; }
+.drum-field input[type="range"] { margin: 6px 0; }
+.drum-reprocess { padding: 10px 0; font-size: 14px; color: var(--purple); }
+.drum-range-labels { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
+.drum-grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; border-top: 1px solid var(--line); margin-top: 22px; padding-top: 20px; }
+.drum-grid-inputs label { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.drum-grid-inputs input { background: var(--soft); color: var(--text); border: 1px solid var(--line); padding: 8px 10px; width: 100%; }
+.drum-grid-inputs small, .drum-caption { color: var(--muted); font-size: 12px; line-height: 1.7; }
+.drum-caption { margin-bottom: 0; }
+.drum-limits { display: flex; gap: 10px; padding: 4px 12px 12px; color: var(--muted); }
+.drum-limits svg { margin-top: 4px; }
+.drum-limits p { margin: 0; font-size: 12px; line-height: 1.85; }
+.drum-main { display: flex; flex-direction: column; gap: 14px; }
+.drum-session { flex-shrink: 0; }
+.drum-track-heading { display: flex; align-items: center; gap: 16px; justify-content: space-between; padding: 20px 22px 16px; }
+.drum-track-heading > div { min-width: 0; }
+.drum-track-heading h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drum-track-heading p { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.drum-status { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--drum-accent); white-space: nowrap; }
+.drum-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; padding: 0 22px 18px; }
+.drum-play { width: 42px; height: 42px; background: var(--accent-fill); color: var(--on-accent); }
+.drum-time { font-family: ui-monospace, monospace; font-size: 14px; white-space: nowrap; }
+.drum-time > span { color: var(--muted); }
+.drum-source { display: flex; border: 1px solid var(--line); padding: 3px; }
+.drum-source button { padding: 7px 12px; font-size: 14px; color: var(--muted); }
+.drum-source button[aria-pressed="true"] { background: var(--soft); color: var(--purple); }
+.drum-controls .select-trigger { font-size: 14px; min-height: 38px; }
+.drum-zoom { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.drum-zoom button { min-width: 30px; height: 32px; }
+.drum-progress { position: relative; display: flex; gap: 12px; align-items: center; min-height: 40px; padding: 10px 22px; background: var(--soft); font-size: 12px; color: var(--muted); }
+.drum-progress > span { flex: 1; }
+.drum-progress b { font-weight: 500; }
+.drum-progress button { font-size: 12px; }
+.drum-progress i { position: absolute; height: 2px; left: 0; bottom: 0; background: var(--drum-accent); transition: width .2s; }
+.drum-score-panel { display: flex; flex-direction: column; flex: 1; min-height: 380px; overflow: hidden; }
+.drum-score-heading { display: flex; align-items: center; gap: 16px; padding: 18px 22px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.drum-score-heading > span { font-size: 12px; color: var(--muted); }
+.drum-legend { margin-left: auto; display: flex; gap: 15px; font-size: 13px; }
+.drum-timeline { position: relative; overflow: auto; min-height: 260px; flex: 1; overscroll-behavior: contain; }
+.drum-timeline-content { position: relative; }
+.drum-timeline canvas { position: sticky; left: 0; display: block; cursor: crosshair; }
+.drum-timeline canvas:focus-visible { outline: 2px solid var(--purple); outline-offset: -2px; }
+.drum-playhead { position: absolute; top: 24px; bottom: 0; left: 0; width: 1.5px; pointer-events: none; background: var(--playhead); }
+.drum-playhead span { position: absolute; left: -4px; width: 9px; height: 7px; background: var(--playhead); }
+.drum-score-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-top: 1px solid var(--line); flex-shrink: 0; }
+.drum-score-footer > span { font-size: 12px; color: var(--muted); line-height: 1.7; }
+.drum-score-footer > div { display: flex; gap: 12px; flex-shrink: 0; }
+.drum-score-footer button { font-size: 13px; padding: 8px; background: var(--soft); }
+.drum-no-hits { margin: 0; padding: 12px 20px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.drum-page .error-banner { font-size: 14px; flex-shrink: 0; }
+@media (max-width: 1100px) {
+  .drum-workspace { grid-template-columns: 270px minmax(0, 1fr); padding: 12px; gap: 12px; }
+  .drum-controls { gap: 10px; }
+  .drum-score-heading > span { display: none; }
+  .drum-score-footer { flex-wrap: wrap; }
+}
+@media (max-width: 760px) {
+  .drum-page .topbar { height: 58px; }
+  .drum-workspace { display: flex; padding: 12px; }
+  .drum-page .sidebar { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .drum-intro, .drum-limits { grid-column: 1 / -1; }
+  .drum-intro { padding: 16px; }
+  .drum-intro h1 { margin-top: 10px; }
+  .drum-upload, .drum-settings { padding: 14px; }
+  .drum-dropzone { padding: 23px 6px; }
+  .drum-dropzone strong { font-size: 14px; }
+  .drum-dropzone small { line-height: 1.6; }
+  .drum-score-panel { flex: auto; min-height: 700px; }
+  .drum-timeline { flex: auto; max-height: 584px; }
+  .drum-track-heading, .drum-controls, .drum-score-heading { padding-left: 14px; padding-right: 14px; }
+  .drum-score-footer > div { flex-wrap: wrap; }
+}
+@media (max-width: 480px) {
+  .drum-page .sidebar { grid-template-columns: 1fr; }
+  .drum-page .brand { font-size: 16px; gap: 5px; }
+  .drum-page .brand-icon { display: none; }
+  .drum-page .theme-picker { padding: 4px; }
+  .drum-page .theme-picker > svg { display: none; }
+  .drum-controls { gap: 10px; }
+  .drum-zoom { margin-left: 0; }
+  .drum-score-heading { flex-wrap: wrap; gap: 10px; }
+  .drum-legend { gap: 10px; }
+}
